@@ -16,7 +16,7 @@ import java.util.Set;
 public class InventarioTablaModel extends AbstractTableModel {
 
     private List<InventarioItem> items = new ArrayList<>();
-    private final String[] columnNames = {"ID", "Marca", "Artículo", "Uso", "Ubicación", "Stock Inicial", "Stock Mínimo", "Stock Máximo", "Cantidad Física", "Fecha Estancia", "Foto"};
+    private final String[] columnNames = {"ID", "Marca", "Artículo", "Uso", "Ubicación", "Stock Mínimo", "Stock Máximo", "Cantidad Física", "Fecha Estancia", "Foto"};
     private Set<InventarioItem> itemsModificados = new HashSet<>();
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -46,12 +46,12 @@ public class InventarioTablaModel extends AbstractTableModel {
             case 2: return item.getArticulo();
             case 3: return item.getUso();
             case 4: return item.getUbicacion();
-            case 5: return item.getStockInicial();
-            case 6: return item.getStockMinimos();
-            case 7: return item.getStockMaximos();
-            case 8: return item.getCantidadFisica();
-            case 9: return item.getEstanciaEnStock() != null ? dateFormat.format(item.getEstanciaEnStock()) : "";
-            case 10: return item.getFoto() != null ? new ImageIcon(item.getFoto()) : null;
+            //case 5: return item.getStockInicial();
+            case 5: return item.getStockMinimos();
+            case 6: return item.getStockMaximos();
+            case 7: return item.getCantidadFisica();
+            case 8: return item.getEstanciaEnStock() != null ? dateFormat.format(item.getEstanciaEnStock()) : "";
+            case 9: return item.getFoto() != null ? new ImageIcon(item.getFoto()) : null;
             default: return null;
         }
     }
@@ -64,7 +64,7 @@ public class InventarioTablaModel extends AbstractTableModel {
     
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return columnIndex > 0 && columnIndex < 10; // Todas las columnas excepto el ID son editables
+        return columnIndex > 0 && columnIndex < 9; // Todas las columnas excepto el ID son editables
     }
 
         @Override
@@ -85,11 +85,11 @@ public class InventarioTablaModel extends AbstractTableModel {
                 case 2: item.setArticulo((String) aValue); break;
                 case 3: item.setUso((String) aValue); break;
                 case 4: item.setUbicacion((String) aValue); break;
-                case 5: item.setStockInicial(new BigDecimal(aValue.toString())); break;
-                case 6: item.setStockMinimos(new BigDecimal(aValue.toString())); break;
-                case 7: item.setStockMaximos(new BigDecimal(aValue.toString())); break;
-                case 8: item.setCantidadFisica(new BigDecimal(aValue.toString())); break;
-                case 9: item.setEstanciaEnStock(dateFormat.parse(aValue.toString())); break;
+                //case 5: item.setStockInicial(new BigDecimal(aValue.toString())); break;
+                case 5: item.setStockMinimos(new BigDecimal(aValue.toString())); break;
+                case 6: item.setStockMaximos(new BigDecimal(aValue.toString())); break;
+                case 7: item.setCantidadFisica(new BigDecimal(aValue.toString())); break;
+                case 8: item.setEstanciaEnStock(dateFormat.parse(aValue.toString())); break;
                 
             }
         } catch (NumberFormatException | ParseException e) {

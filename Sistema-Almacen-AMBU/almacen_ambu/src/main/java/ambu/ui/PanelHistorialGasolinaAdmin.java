@@ -14,6 +14,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Calendar;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -215,10 +216,11 @@ public class PanelHistorialGasolinaAdmin extends JPanel {
 
         try (PreparedStatement ps = cn.prepareStatement(SQL);
              ResultSet rs = ps.executeQuery()) {
+                Calendar cal = Calendar.getInstance();
             while (rs.next()) {
                 HistorialGasolinaRow r = new HistorialGasolinaRow();
                 r.id = rs.getInt("id");
-                Timestamp ft = rs.getTimestamp("fecha_ticket");
+                Timestamp ft = rs.getTimestamp("fecha_ticket", cal);
                 r.fechaTicket = (ft == null) ? null : new Date(ft.getTime());
                 r.estado = rs.getString("estado");
                 r.solicitante = rs.getString("solicitante");
@@ -228,7 +230,7 @@ public class PanelHistorialGasolinaAdmin extends JPanel {
                 r.cantidadEntregada = rs.getBigDecimal("cantidad_entregada");
                 r.unidades = rs.getString("unidades");
                 r.cantidadDevuelta = rs.getBigDecimal("cantidad_devuelta");
-                Timestamp fd = rs.getTimestamp("fecha_devolucion");
+                Timestamp fd = rs.getTimestamp("fecha_devolucion", cal);
                 r.fechaDevolucion = (fd == null) ? null : new Date(fd.getTime());
                 out.add(r);
             }

@@ -551,11 +551,11 @@ public class PanelInventario extends JPanel {
             columnModel.getColumn(2).setPreferredWidth(250);   // Artículo
             columnModel.getColumn(3).setPreferredWidth(100);   // Uso
             columnModel.getColumn(4).setPreferredWidth(100);   // Ubicación
-            columnModel.getColumn(5).setPreferredWidth(100);   // Stock Inicial
-            columnModel.getColumn(6).setPreferredWidth(100);   // Stock Mínimo
-            columnModel.getColumn(7).setPreferredWidth(100);   // Stock Máximo
-            columnModel.getColumn(8).setPreferredWidth(110);   // Cantidad Física
-            columnModel.getColumn(9).setPreferredWidth(120);   // Fecha Estancia
+            //columnModel.getColumn(5).setPreferredWidth(100);   // Stock Inicial
+            columnModel.getColumn(5).setPreferredWidth(100);   // Stock Mínimo
+            columnModel.getColumn(6).setPreferredWidth(100);   // Stock Máximo
+            columnModel.getColumn(7).setPreferredWidth(110);   // Cantidad Física
+            columnModel.getColumn(8).setPreferredWidth(120);   // Fecha Estancia
             int fotoViewIndex = findColumnIndexByName(tablaInventario, "Foto");
             if (fotoViewIndex != -1) {
                 tablaInventario.getColumnModel()

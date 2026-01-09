@@ -1,18 +1,13 @@
 package ambu.ui;
 
-import ambu.mysql.DatabaseConnection;
-import ambu.process.TicketsService;
-import ambu.process.TicketsService.DisponibleItem;
-import ambu.process.TicketsService.ItemSolicitado;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableRowSorter;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -22,6 +17,35 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
+import javax.swing.RowFilter;
+import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableRowSorter;
+
+import ambu.mysql.DatabaseConnection;
+import ambu.process.TicketsService;
+import ambu.process.TicketsService.DisponibleItem;
+import ambu.process.TicketsService.ItemSolicitado;
 
 /*-----------------------------------------------
     Panel para solicitar un ticket de un insumo desde el panel de administrador
@@ -109,40 +133,57 @@ public class PanelTicketInsumoAdmin extends JPanel {
         InputMap inputMap = this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), refreshActionKey);
         this.getActionMap().put(refreshActionKey, refreshAction);
-
-
+        // Tabla de disponibles
         disponiblesModel = new DisponiblesTableModel();
         tblDisponibles = new JTable(disponiblesModel);
         sorter = new TableRowSorter<>(disponiblesModel);
         tblDisponibles.setRowSorter(sorter);
         tblDisponibles.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        pDisp.add(new JScrollPane(tblDisponibles), BorderLayout.CENTER);
 
-        // Form para agregar al carrito
+        JScrollPane spDisponibles = new JScrollPane(tblDisponibles);
+        spDisponibles.setMinimumSize(new Dimension(300, 120));
+
+        // --- Form para agregar al carrito ---
         JPanel pForm = new JPanel(new GridBagLayout());
+        pForm.setMinimumSize(new Dimension(260, 120)); // evita que el lado derecho colapse
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(6,6,6,6);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Cantidad
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0; pForm.add(new JLabel("Cantidad:"), gbc);
         txtCantidad = new JTextField();
         gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1; pForm.add(txtCantidad, gbc);
+
+        // Unidad
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0; pForm.add(new JLabel("Unidad:"), gbc);
         txtUnidad = new JTextField();
         gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1; pForm.add(txtUnidad, gbc);
+
+        // Observaciones
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0; pForm.add(new JLabel("Observaciones:"), gbc);
         txtObs = new JTextArea(2, 30);
         txtObs.setLineWrap(true);
         txtObs.setWrapStyleWord(true);
-        gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1; gbc.fill = GridBagConstraints.BOTH; pForm.add(new JScrollPane(txtObs), gbc);
+        JScrollPane spObs = new JScrollPane(txtObs);
+        gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1; gbc.fill = GridBagConstraints.BOTH;
+        pForm.add(spObs, gbc);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         JButton btnAgregar = new JButton("Agregar al carrito");
         btnAgregar.addActionListener(e -> agregarAlCarrito());
-        gbc.gridx = 1; gbc.gridy = 3; gbc.weightx = 0; pForm.add(btnAgregar, gbc);
+        gbc.gridx = 1; gbc.gridy = 3; gbc.weightx = 0;
+        pForm.add(btnAgregar, gbc);
 
-        pDisp.add(pForm, BorderLayout.EAST);
+        // --- Splitter horizontal ---
+        JSplitPane hsplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, spDisponibles, pForm);
+        hsplit.setResizeWeight(0.75);         
+        hsplit.setContinuousLayout(true);
+        hsplit.setOneTouchExpandable(true);
+
+        pDisp.add(hsplit, BorderLayout.CENTER);
         pTop.add(pDisp, BorderLayout.CENTER);
-
         split.setTopComponent(pTop);
 
         // ----- PANEL INFERIOR: Carrito -----

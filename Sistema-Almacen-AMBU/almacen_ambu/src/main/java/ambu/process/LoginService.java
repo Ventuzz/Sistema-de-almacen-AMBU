@@ -126,6 +126,21 @@ String sql = "SELECT usuario_id, password_hash, nom_usuario, rol, activo FROM us
     return usuarios;
 }
 
+    public boolean eliminarUsuario(long usuarioId) {
+    String sql = "DELETE FROM usuarios WHERE usuario_id = ?";
+    try (Connection conn = DatabaseConnection.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+        pstmt.setLong(1, usuarioId);
+
+        int affectedRows = pstmt.executeUpdate();
+        return affectedRows > 0;
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return false;
+}
 
 public boolean cambiarEstadoUsuario(long usuarioId, boolean nuevoEstado) {
     String sql = "UPDATE usuarios SET activo = ? WHERE usuario_id = ?";

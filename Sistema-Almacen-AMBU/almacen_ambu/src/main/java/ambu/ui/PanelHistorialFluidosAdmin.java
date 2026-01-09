@@ -14,9 +14,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import javax.swing.AbstractAction;
-import javax.swing.KeyStroke;
-import javax.swing.JComponent;
+import java.util.Calendar;
 
 /*-----------------------------------------------
     Panel de historial de Aceites y Anticongelantes
@@ -50,8 +48,27 @@ public class PanelHistorialFluidosAdmin extends JPanel {
 
         model = new HistorialModel();
         table = new JTable(model);
+        table.setDefaultRenderer(java.util.Date.class, new javax.swing.table.DefaultTableCellRenderer() {
+            private final java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+
+            @Override
+            public void setValue(Object value) {
+                try {
+                    if (value instanceof java.util.Date) {
+                        value = sdf.format(value);
+                    }
+                } catch (Exception e) { } // Ignorar errores de formato
+                super.setValue(value);
+            }
+        });
         sorter = new TableRowSorter<>(model);
         table.setRowSorter(sorter);
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                validarBotonDevolucion();
+            }
+        });
+
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -85,6 +102,7 @@ public class PanelHistorialFluidosAdmin extends JPanel {
         btnDevolver = new JButton(new AbstractAction("Registrar devolución"){
             @Override public void actionPerformed(java.awt.event.ActionEvent e){ onDevolver(); }
         });
+        btnDevolver.setEnabled(false);
         south.add(btnRefrescar); south.add(btnExportar); south.add(btnDevolver);
         add(south, BorderLayout.SOUTH);
     }
@@ -92,7 +110,7 @@ public class PanelHistorialFluidosAdmin extends JPanel {
     private void cargar(){
         new SwingWorker<java.util.List<HistorialRow>, Void>(){
             protected java.util.List<HistorialRow> doInBackground() throws Exception { return fetch(); }
-            protected void done(){ try { model.setData(get()); } catch(Exception ex){ JOptionPane.showMessageDialog(PanelHistorialFluidosAdmin.this, ex.getMessage()); }}
+            protected void done(){ try { model.setData(get()); validarBotonDevolucion(); } catch(Exception ex){ JOptionPane.showMessageDialog(PanelHistorialFluidosAdmin.this, ex.getMessage()); }}
         }.execute();
     }
 
@@ -109,10 +127,12 @@ public class PanelHistorialFluidosAdmin extends JPanel {
              PreparedStatement ps = cn.prepareStatement(SQL);
              ResultSet rs = ps.executeQuery()) {
             List<HistorialRow> out = new ArrayList<HistorialRow>();
+            Calendar cal = Calendar.getInstance();
             while (rs.next()) {
                 HistorialRow r = new HistorialRow();
                 r.id = rs.getInt(1);
-                r.fecha = rs.getDate(2);
+                Timestamp t = rs.getTimestamp(2, cal);
+                r.fecha = (t == null) ? null : new Date(t.getTime());
                 r.estado = rs.getString(3);
                 r.solicitante = rs.getString(4);
                 r.fluido = rs.getString(5);
@@ -123,7 +143,19 @@ public class PanelHistorialFluidosAdmin extends JPanel {
                 r.placas = rs.getString(10);
                 if (r.cantEnt == null) r.cantEnt = BigDecimal.ZERO;
                 if (r.cantDev == null) r.cantDev = BigDecimal.ZERO;
-                r.pendiente = r.cantEnt.subtract(r.cantDev);
+                String estadoLimpio = (r.estado == null) ? "" : r.estado.trim();
+
+                    // 2. Si es RECHAZADO o CERRADO (ignorando mayúsculas), el pendiente es 0
+                    if (estadoLimpio.equalsIgnoreCase("RECHAZADA") || estadoLimpio.equalsIgnoreCase("CERRADA")) {
+                        r.pendiente = BigDecimal.ZERO;
+                    } else {
+                        // 3. Si no, calculamos la resta normal
+                        r.pendiente = r.cantEnt.subtract(r.cantDev);
+                        // Opcional: Si la resta da negativo, dejarlo en 0
+                        if (r.pendiente.compareTo(BigDecimal.ZERO) < 0) {
+                            r.pendiente = BigDecimal.ZERO;
+                        }
+                    }
                 out.add(r);
             }
             return out;
@@ -137,6 +169,11 @@ public class PanelHistorialFluidosAdmin extends JPanel {
         if (viewRow < 0) { JOptionPane.showMessageDialog(this, "Selecciona un ticket."); return; }
         int modelRow = table.convertRowIndexToModel(viewRow);
         HistorialRow sel = model.getAt(modelRow);
+        String estadoActual = sel.estado != null ? sel.estado.toUpperCase() : "";
+        if (estadoActual.equals("CERRADA") || estadoActual.equals("RECHAZADA")) {
+            JOptionPane.showMessageDialog(this, "No se pueden realizar devoluciones en un ticket con estado: " + sel.estado);
+            return;
+        }
         if (sel.pendiente.compareTo(BigDecimal.ZERO) <= 0) {
             JOptionPane.showMessageDialog(this, "Este ticket no tiene pendiente por devolver.");
             return;
@@ -156,37 +193,83 @@ public class PanelHistorialFluidosAdmin extends JPanel {
             JOptionPane.showMessageDialog(this, "Error al registrar devolución: "+ex.getMessage());
         }
     }
+
+    private void validarBotonDevolucion() {
+        int viewRow = table.getSelectedRow();
+        
+        // 1. Si no hay nada seleccionado, desactivar
+        if (viewRow < 0) {
+            btnDevolver.setEnabled(false);
+            return;
+        }
+
+        int modelRow = table.convertRowIndexToModel(viewRow);
+        HistorialRow row = model.getAt(modelRow);
+
+        // 3. Verificar condiciones
+        boolean estadoInvalido = "CERRADA".equalsIgnoreCase(row.estado) 
+                              || "RECHAZADA".equalsIgnoreCase(row.estado);
+        
+        boolean sinPendiente = row.pendiente.compareTo(BigDecimal.ZERO) <= 0;
+
+        // 4. Si el estado es inválido O no hay nada pendiente, desactivar.
+        if (estadoInvalido || sinPendiente) {
+            btnDevolver.setEnabled(false);
+        } else {
+            btnDevolver.setEnabled(true);
+        }
+    }
+
 /*----------------------
     EXportar a excel
  -----------------------*/
-    private void exportarCSV(){
+private void exportarCSV() {
         JFileChooser fc = new JFileChooser();
         fc.setDialogTitle("Guardar historial (CSV)");
         if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             java.io.File f = fc.getSelectedFile();
             if (!f.getName().toLowerCase().endsWith(".csv")) {
-                f = new java.io.File(f.getParentFile(), f.getName()+".csv");
+                f = new java.io.File(f.getParentFile(), f.getName() + ".csv");
             }
             try (FileWriter w = new FileWriter(f)) {
-                // encabezados
-                for (int c=0;c<model.getColumnCount();c++) {
+                // Escribir encabezados
+                for (int c=0; c<model.getColumnCount(); c++) {
                     if (c>0) w.write(",");
                     w.write(model.getColumnName(c));
                 }
-                w.write("");
-                // filas
-                for (int r=0;r<model.getRowCount();r++) {
-                    for (int c=0;c<model.getColumnCount();c++) {
+                w.write("\n");
+
+                // --- 1. Definir el formato de fecha con hora y minutos ---
+                java.text.SimpleDateFormat sdfExport = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+
+                // Escribir datos
+                for (int r=0; r<model.getRowCount(); r++) {
+                    for (int c=0; c<model.getColumnCount(); c++) {
                         if (c>0) w.write(",");
                         Object val = model.getValueAt(r,c);
-                        w.write(val==null?"":String.valueOf(val));
+                        
+                        // --- 2. Lógica modificada para formatear fechas ---
+                        String texto = "";
+                        if (val != null) {
+                            if (val instanceof java.util.Date) {
+                                // Si es fecha, usamos el formato dd/MM/yyyy HH:mm
+                                texto = sdfExport.format((java.util.Date) val);
+                            } else {
+                                // Si es otro dato, lo convertimos a texto normal
+                                texto = String.valueOf(val);
+                                // Opcional: Reemplazar comas por puntos para no romper el CSV
+                                texto = texto.replace(",", "."); 
+                            }
+                        }
+                        w.write(texto);
+                        // -------------------------------------------------
                     }
-                    w.write("");
+                    w.write("\n");
                 }
                 w.flush();
-                JOptionPane.showMessageDialog(this, "Archivo exportado: "+f.getAbsolutePath());
+                JOptionPane.showMessageDialog(this, "Archivo exportado: " + f.getAbsolutePath());
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error al exportar: "+ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Error al exportar: " + ex.getMessage());
             }
         }
     }

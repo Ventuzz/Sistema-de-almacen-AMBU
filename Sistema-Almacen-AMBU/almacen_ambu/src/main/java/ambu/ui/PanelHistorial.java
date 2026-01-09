@@ -23,6 +23,7 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Calendar;
 
 
 /*-----------------------------------------------
@@ -249,11 +250,18 @@ public class PanelHistorial extends JPanel {
                     }
 
                     try (ResultSet rs = ps.executeQuery()) {
+                        Calendar cal = Calendar.getInstance();
                         while (rs.next()) {
                             Row r = new Row();
                             r.id = rs.getInt("id");
-                            Timestamp f = rs.getTimestamp("fecha");
-                            r.fecha = (f == null) ? null : new Date(f.getTime());
+                            r.tipo = rs.getString("tipo");
+                            if ("SOLICITUD".equalsIgnoreCase(r.tipo)) {
+                                java.sql.Date d = rs.getDate("fecha");
+                                r.fecha = (d == null) ? null : new Date(d.getTime());
+                            } else {
+                                Timestamp f = rs.getTimestamp("fecha", cal);
+                                r.fecha = (f == null) ? null : new Date(f.getTime());
+                            }
                             r.estado = rs.getString("estado");
                             r.solicitante = rs.getString("solicitante");
                             r.insumo = rs.getString("insumo");
@@ -261,11 +269,11 @@ public class PanelHistorial extends JPanel {
                             r.unidadEnt = rs.getString("unidad_entregada");
                             r.cantidadDev = rs.getBigDecimal("cantidad_devuelta");
                             r.unidadDev = rs.getString("unidad_devuelta");
-                            Timestamp fd = rs.getTimestamp("fecha_devolucion");
+                            Timestamp fd = rs.getTimestamp("fecha_devolucion", cal);
                             r.fechaDev = (fd == null) ? null : new Date(fd.getTime());
                             r.receptorDev = rs.getString("receptor_devolucion");
                             r.observaciones = rs.getString("observaciones");
-                            r.tipo = rs.getString("tipo");
+                            //r.tipo = rs.getString("tipo");
                             r.idExistencia = (Integer) rs.getObject("id_existencia");
                             rows.add(r);
                         }

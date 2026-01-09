@@ -65,11 +65,13 @@ public class PanelUsuarios extends JPanel {
         CustomButton btnCambiarRol = new CustomButton("Cambiar Rol");
         CustomButton btnAñadirUsuario = new CustomButton("Añadir Usuario");
         CustomButton btnActualizar = new CustomButton("Refrescar Lista");
+        CustomButton btnEliminarUsuario = new CustomButton("Eliminar Usuario");
         
         panelBotones.add(btnDesactivar);
         panelBotones.add(btnCambiarRol);
         panelBotones.add(btnAñadirUsuario);
         panelBotones.add(btnActualizar);
+        panelBotones.add(btnEliminarUsuario);
         add(panelBotones, BorderLayout.SOUTH);
 
         btnCambiarRol.addActionListener(e -> {
@@ -86,7 +88,26 @@ public class PanelUsuarios extends JPanel {
                     JOptionPane.showMessageDialog(this, "No se pudo cambiar el rol.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Por favor, selecciona un usuario de la tabla.");
+                JOptionPane.showMessageDialog(this, "Por favor, selecciona un usuario de la tabla.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
+        btnEliminarUsuario.addActionListener(e -> {
+            int selectedRow = tablaUsuarios.getSelectedRow();
+            if (selectedRow >= 0) {
+                long userId = (long) tableModel.getValueAt(selectedRow, 0);
+                int confirm = JOptionPane.showConfirmDialog(this, "¿Estás seguro de que deseas eliminar este usuario?", "Confirmar Eliminación", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    boolean exito = loginService.eliminarUsuario(userId);
+                    if (exito) {
+                        JOptionPane.showMessageDialog(this, "Usuario eliminado correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        cargarUsuarios();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "No se pudo eliminar el usuario.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Por favor, selecciona un usuario de la tabla.", "Advertencia", JOptionPane.WARNING_MESSAGE);
             }
         });
         
