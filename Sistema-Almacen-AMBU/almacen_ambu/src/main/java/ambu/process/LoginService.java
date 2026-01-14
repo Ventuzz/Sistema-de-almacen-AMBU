@@ -179,4 +179,24 @@ public boolean cambiarEstadoUsuario(long usuarioId, boolean nuevoEstado) {
     }
     return false;
     }
+
+    //cambiar contraseña de usuario
+    public boolean cambiarContraseñaUsuario(long usuarioId, String nuevaContraseña) {
+        String hash = BCrypt.hashpw(nuevaContraseña, BCrypt.gensalt());
+
+        String sql = "UPDATE usuarios SET password_hash = ? WHERE usuario_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, hash);
+            pstmt.setLong(2, usuarioId);
+
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

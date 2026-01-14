@@ -1,7 +1,8 @@
 package ambu.ui;
 
 import ambu.models.Usuario;
-import ambu.ui.componentes.CustomButton; 
+import ambu.ui.componentes.CustomButton;
+import ambu.ui.dialog.CambioPasswordDialog;
 import ambu.ui.dialog.RegistroDialog;
 import ambu.process.LoginService;
 
@@ -66,12 +67,14 @@ public class PanelUsuarios extends JPanel {
         CustomButton btnAñadirUsuario = new CustomButton("Añadir Usuario");
         CustomButton btnActualizar = new CustomButton("Refrescar Lista");
         CustomButton btnEliminarUsuario = new CustomButton("Eliminar Usuario");
+        CustomButton btnCambiarContraseña = new CustomButton("Cambiar Contraseña");
         
         panelBotones.add(btnDesactivar);
         panelBotones.add(btnCambiarRol);
         panelBotones.add(btnAñadirUsuario);
         panelBotones.add(btnActualizar);
         panelBotones.add(btnEliminarUsuario);
+        panelBotones.add(btnCambiarContraseña);
         add(panelBotones, BorderLayout.SOUTH);
 
         btnCambiarRol.addActionListener(e -> {
@@ -90,6 +93,24 @@ public class PanelUsuarios extends JPanel {
             } else {
                 JOptionPane.showMessageDialog(this, "Por favor, selecciona un usuario de la tabla.", "Advertencia", JOptionPane.WARNING_MESSAGE);
             }
+        });
+
+        btnCambiarContraseña.addActionListener(e -> {
+                int selectedRow = tablaUsuarios.getSelectedRow();
+                if (selectedRow >= 0) {
+                    // Obtenemos el ID de la columna 0
+                    long userId = (long) tableModel.getValueAt(selectedRow, 0);
+                    
+                    // Pasamos el ID al constructor del diálogo
+                    CambioPasswordDialog dialogo = new CambioPasswordDialog(
+                        (Frame) SwingUtilities.getWindowAncestor(this), 
+                        loginService, 
+                        userId // <--- AQUÍ PASAMOS EL ID
+                    );
+                    dialogo.setVisible(true);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Por favor, selecciona un usuario de la tabla.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                }
         });
 
         btnEliminarUsuario.addActionListener(e -> {

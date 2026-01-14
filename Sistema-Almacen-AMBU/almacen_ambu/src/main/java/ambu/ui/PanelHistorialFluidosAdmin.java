@@ -145,13 +145,12 @@ public class PanelHistorialFluidosAdmin extends JPanel {
                 if (r.cantDev == null) r.cantDev = BigDecimal.ZERO;
                 String estadoLimpio = (r.estado == null) ? "" : r.estado.trim();
 
-                    // 2. Si es RECHAZADO o CERRADO (ignorando mayúsculas), el pendiente es 0
+                    //  Si es RECHAZADO o CERRADO , el pendiente es 0
                     if (estadoLimpio.equalsIgnoreCase("RECHAZADA") || estadoLimpio.equalsIgnoreCase("CERRADA")) {
                         r.pendiente = BigDecimal.ZERO;
                     } else {
-                        // 3. Si no, calculamos la resta normal
+                        //  Si no, calculamos la resta normal
                         r.pendiente = r.cantEnt.subtract(r.cantDev);
-                        // Opcional: Si la resta da negativo, dejarlo en 0
                         if (r.pendiente.compareTo(BigDecimal.ZERO) < 0) {
                             r.pendiente = BigDecimal.ZERO;
                         }
@@ -197,7 +196,7 @@ public class PanelHistorialFluidosAdmin extends JPanel {
     private void validarBotonDevolucion() {
         int viewRow = table.getSelectedRow();
         
-        // 1. Si no hay nada seleccionado, desactivar
+        //  Si no hay nada seleccionado, desactivar
         if (viewRow < 0) {
             btnDevolver.setEnabled(false);
             return;
@@ -206,13 +205,13 @@ public class PanelHistorialFluidosAdmin extends JPanel {
         int modelRow = table.convertRowIndexToModel(viewRow);
         HistorialRow row = model.getAt(modelRow);
 
-        // 3. Verificar condiciones
+        //  Verificar condiciones
         boolean estadoInvalido = "CERRADA".equalsIgnoreCase(row.estado) 
                               || "RECHAZADA".equalsIgnoreCase(row.estado);
         
         boolean sinPendiente = row.pendiente.compareTo(BigDecimal.ZERO) <= 0;
 
-        // 4. Si el estado es inválido O no hay nada pendiente, desactivar.
+        //  Si el estado es inválido O no hay nada pendiente, desactivar.
         if (estadoInvalido || sinPendiente) {
             btnDevolver.setEnabled(false);
         } else {
@@ -221,7 +220,7 @@ public class PanelHistorialFluidosAdmin extends JPanel {
     }
 
 /*----------------------
-    EXportar a excel
+    Exportar a excel
  -----------------------*/
 private void exportarCSV() {
         JFileChooser fc = new JFileChooser();
@@ -239,7 +238,7 @@ private void exportarCSV() {
                 }
                 w.write("\n");
 
-                // --- 1. Definir el formato de fecha con hora y minutos ---
+                // Definir el formato de fecha con hora y minutos ---
                 java.text.SimpleDateFormat sdfExport = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
 
                 // Escribir datos
@@ -248,7 +247,7 @@ private void exportarCSV() {
                         if (c>0) w.write(",");
                         Object val = model.getValueAt(r,c);
                         
-                        // --- 2. Lógica modificada para formatear fechas ---
+                        //  Lógica modificada para formatear fechas ---
                         String texto = "";
                         if (val != null) {
                             if (val instanceof java.util.Date) {
@@ -257,12 +256,11 @@ private void exportarCSV() {
                             } else {
                                 // Si es otro dato, lo convertimos a texto normal
                                 texto = String.valueOf(val);
-                                // Opcional: Reemplazar comas por puntos para no romper el CSV
+                                // Reemplazar comas por puntos para no romper el CSV
                                 texto = texto.replace(",", "."); 
                             }
                         }
                         w.write(texto);
-                        // -------------------------------------------------
                     }
                     w.write("\n");
                 }
