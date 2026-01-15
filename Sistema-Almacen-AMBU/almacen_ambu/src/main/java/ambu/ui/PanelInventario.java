@@ -17,6 +17,7 @@ import com.mysql.cj.jdbc.Blob;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileWriter;
 import java.awt.*;
 import java.util.Set;
 import ambu.ui.componentes.CustomTextField;
@@ -24,9 +25,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.AbstractAction;
-import javax.swing.KeyStroke;
-import javax.swing.JComponent;
 
 import java.awt.event.MouseAdapter;
 import java.util.List;
@@ -48,6 +46,7 @@ public class PanelInventario extends JPanel {
     private CustomButton btnEliminar;
     private JButton btnActualizarFoto;
     private CustomButton btnRefrescar;
+    private CustomButton btnExportarExcel;
 
     public PanelInventario() {
         this.inventarioService = new InventarioService();
@@ -90,11 +89,13 @@ public class PanelInventario extends JPanel {
         btnEliminar= new CustomButton("Eliminar Seleccionado");
         btnActualizarFoto = new CustomButton("Actualizar foto");
         btnRefrescar = new CustomButton("Refrescar");
+        btnExportarExcel = new CustomButton("Exportar a Excel");
         panelBotones.add(btnEliminar);
         panelBotones.add(btnGuardar);
         panelBotones.add(btnAnadir);
         panelBotones.add(btnActualizarFoto);
         panelBotones.add(btnRefrescar);
+        panelBotones.add(btnExportarExcel);
         panelSur.add(panelBotones, BorderLayout.EAST);
 
         add(panelSur, BorderLayout.SOUTH);
@@ -440,6 +441,7 @@ public class PanelInventario extends JPanel {
        ========================= */
 
     private void wireBotones() {
+        btnExportarExcel.addActionListener(e -> exportarCSV());
         btnActualizarFoto.addActionListener(e -> actualizarFotoSeleccionada());
         btnGuardar.addActionListener(e -> {
             Set<InventarioItem> modificados = tableModel.getItemsModificados();
@@ -528,6 +530,97 @@ public class PanelInventario extends JPanel {
             }.execute();
         });
     }
+
+    /* =========================
+       Exportar a Excel
+       ========================= */
+
+    private void exportarCSV() {
+        if (tablaInventario.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "No hay datos para exportar.", "Aviso", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Guardar inventario");
+        fc.setSelectedFile(new File("inventario.csv"));
+        
+        int opt = fc.showSaveDialog(this);
+        if (opt != JFileChooser.APPROVE_OPTION) return;
+
+        File file = fc.getSelectedFile();
+        if (!file.getName().toLowerCase().endsWith(".csv")) {
+            file = new File(file.getParentFile(), file.getName() + ".csv");
+        }
+
+        try (java.io.OutputStreamWriter w = new java.io.OutputStreamWriter(
+                new java.io.FileOutputStream(file), java.nio.charset.StandardCharsets.UTF_8)) {
+
+            w.write('\ufeff'); 
+
+            //  Escribir Encabezados
+            for (int i = 0; i < tableModel.getColumnCount(); i++) {
+                String colName = tableModel.getColumnName(i);
+                
+                if (i > 0) w.write(",");
+                w.write(escapeCSV(colName));
+            }
+            w.write("\n");
+
+            //  Escribir Filas
+            for (int r = 0; r < tableModel.getRowCount(); r++) {
+                for (int c = 0; c < tableModel.getColumnCount(); c++) {
+                    if (c > 0) w.write(",");
+                    
+                    String colName = tableModel.getColumnName(c);
+                    Object val = tableModel.getValueAt(r, c);
+                    String text = "";
+
+                    if ("Foto".equalsIgnoreCase(colName)) {
+                        if (val != null) {
+                            boolean tieneFoto = false;
+                            if (val instanceof byte[] && ((byte[])val).length > 0) tieneFoto = true;
+                            else if (val instanceof ImageIcon) tieneFoto = true;
+                            else if (val instanceof java.sql.Blob) tieneFoto = true;
+                            
+                            text = tieneFoto ? "[CON FOTO]" : "[SIN FOTO]";
+                        } else {
+                            text = "[SIN FOTO]";
+                        }
+                    } 
+                    else if (val instanceof java.util.Date) {
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                        text = sdf.format(val);
+                    } 
+                    else {
+                        text = (val == null) ? "" : String.valueOf(val);
+                    }
+                    
+                    w.write(escapeCSV(text));
+                }
+                w.write("\n");
+            }
+            w.flush();
+            JOptionPane.showMessageDialog(this, "Exportado correctamente a:\n" + file.getAbsolutePath(), "Éxito", JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            mostrarError("Error al exportar: " + ex.getMessage());
+        }
+    }
+
+    private String escapeCSV(String data) {
+        if (data == null) return "";
+        String escaped = data.replace("\n", " ").replace("\r", " ");
+        escaped = escaped.replace("\"", "\"\""); 
+        if (data.contains(",") || data.contains("\"")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
+    }
+    
+    
+
 
     /* =========================
        ESTILO TABLA
